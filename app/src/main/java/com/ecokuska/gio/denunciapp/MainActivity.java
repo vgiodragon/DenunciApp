@@ -9,8 +9,12 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -19,6 +23,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
@@ -32,6 +38,14 @@ public class MainActivity extends AppCompatActivity {
     private static final String[] PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.WAKE_LOCK};
+    Boolean tieneDNI;
+    Boolean tieneUBIGEO;
+    Boolean tieneNP;
+    Boolean tieneNM;
+    Boolean tieneFECHA;
+    String cv1;
+    String cv2;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,18 +64,29 @@ public class MainActivity extends AppCompatActivity {
                         // Display the first 500 characters of the response string.
                         //mTextView.setText("Response is: "+ response.substring(0,500));
                         //Log.d("GIODEBUG_",response);
-                        Boolean tieneDNI = response.contains("name=\"dni\" id='dni'");
-                        Boolean tieneUBIGEO = response.contains("name='ubigeo' id='ubigeo'");
-                        Boolean tieneNP = response.contains("name='np' value='' id='np'");
-                        Boolean tieneNM = response.contains("name='nm' value='' id='nm'");
-                        Boolean tieneFECHA = response.contains("placeholder ='SELECCIONE FECHA'");
+                        tieneDNI = response.contains("name=\"dni\" id='dni'");
+                        tieneUBIGEO = response.contains("name='ubigeo' id='ubigeo'");
+                        tieneNP = response.contains("name='np' value='' id='np'");
+                        tieneNM = response.contains("name='nm' value='' id='nm'");
+                        tieneFECHA = response.contains("placeholder ='SELECCIONE FECHA'");
 
-                        Log.d("GIODEBUG_",response);
+                        Log.d("GIODEBUG_","tieneDNI "+tieneDNI);
+                        Log.d("GIODEBUG_","tieneUBIGEO "+tieneUBIGEO);
+                        Log.d("GIODEBUG_","tieneNP "+tieneNP);
+                        Log.d("GIODEBUG_","tieneNM "+tieneNM);
+                        Log.d("GIODEBUG_","tieneFECHA "+tieneFECHA);
+
                         String substringCaptcha[] = response.split("name=\"dni\" id='dni'");
                         //name='captcha' id='captcha'
                         String substringCaptcha2[] = substringCaptcha[1].split("rnd=");
                         Log.d("GIODEBUG_",substringCaptcha2[1].substring(0,9));
+                        setCaptcha(substringCaptcha2[1].substring(0,9));
 
+                        String sub2[]= substringCaptcha[1].split("name=\"cv1\" value=");
+                        String sub3[]= substringCaptcha[1].split("name=\"cv2\" value=");
+                        cv1 = sub2[1].substring(1,2);
+                        cv2 = sub3[1].substring(1,2);
+                        Log.d("GIODEBUG_","_"+cv1+" , "+cv2);
 
                     }
                 }, new Response.ErrorListener() {
@@ -72,19 +97,20 @@ public class MainActivity extends AppCompatActivity {
             }
 
         }
-        ){
-            @Override
-            public Map<String, String> getHeaders(){
-                Map<String, String> headers = new HashMap<String, String>();
-                headers.put("User-agent",
-                        "Mozilla/5.0 (Linux; U; Android 4.0.3; ko-kr; LG-L160L Build/IML74K) AppleWebkit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30");
-                return headers;
-            }
-        };
+        );
 // Add the request to the RequestQueue.
         queue.add(stringRequest);
     }
 
+
+    public void setCaptcha(String id){
+        ImageView foto = (ImageView) findViewById(R.id.imagecaptcha);
+        Glide.with(getBaseContext())
+                .load("http://portal.mpfn.gob.pe/denuncias-en-linea/captcha?rnd="+id)
+                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                .into(foto);
+
+    }
 
     public static boolean hasPermissions(Context context, String... permissions) {
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
@@ -119,5 +145,48 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    public void goValidar(View view){
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+        //*/http://portal.mpfn.gob.pe/denuncias-en-linea/entrarvalidacion?dni=70226547&cv1=4&cv2=3&rcv1=EDGAR&rcv2=HUARANGA&captcha=2PU8
+        String url ="http://portal.mpfn.gob.pe/denuncias-en-linea/entrarvalidacion?dni="+Utils.getDni();
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        //mTextView.setText("Response is: "+ response.substring(0,500));
+                        Log.d("GIODEBUG_",response);
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //mTextView.setText("That didn't work!");
+                Log.d("GIODEBUG_","ERROR!!!!");
+            }
+
+        }
+        )/*{
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                EditText editText = (EditText) findViewById(R.id.capchaET);
+                final String valor = String.valueOf(editText.getText());
+                Log.d("GIODEUB_C",valor+"_");
+                Map<String,String> params = new HashMap<>();
+                params.put("func", "ingresar");
+                if (tieneDNI) params.put("dni", String.valueOf(Utils.getDni()));
+                if (tieneFECHA) params.put("fn", Utils.getFecha_nacimiento());
+                if (tieneUBIGEO) params.put("ubigeo", String.valueOf(Utils.getUbigeo()));
+                if (tieneNP) params.put("np", Utils.getPadre());
+                if (tieneNM) params.put("nm", Utils.getMadre());
+                params.put("captcha", valor);
+                return params;
+            }
+        }*/;
+// Add the request to the RequestQueue.
+        queue.add(stringRequest);
+
+    }
 
 }
